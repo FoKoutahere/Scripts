@@ -1,0 +1,107 @@
+-- SERVICES
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local workspace = game:GetService("Workspace")
+
+-- REMOTE EVENTS
+local muscleEvent = player:WaitForChild("muscleEvent")
+local rebirthEvent = player:WaitForChild("rebirthEvent") -- Adjust name if needed
+
+-- STATE
+local autoMuscleEnabled = false
+local autoRebirthEnabled = false
+local autoFarmStrengthEnabled = false
+
+-- MACHINE
+local interactSeat = workspace:WaitForChild("machinesFolder"):WaitForChild("Jungle Bar Lift"):WaitForChild("interactSeat")
+
+-- GUI SETUP
+if player.PlayerGui:FindFirstChild("AutoMuscleUI") then
+    player.PlayerGui:FindFirstChild("AutoMuscleUI"):Destroy()
+end
+
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "AutoMuscleUI"
+
+-- HELPER: CREATE BUTTON FUNCTION
+local function createButton(name, positionY, onClick)
+    local btn = Instance.new("TextButton", screenGui)
+    btn.Size = UDim2.new(0, 200, 0, 50)
+    btn.Position = UDim2.new(0, 20, 0, positionY)
+    btn.Text = name .. ": OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 24
+    btn.BorderSizePixel = 0
+
+    btn.MouseButton1Click:Connect(function()
+        onClick(btn)
+    end)
+end
+
+-- BUTTONS
+createButton("Auto Muscle", 280, function(btn)
+    autoMuscleEnabled = not autoMuscleEnabled
+    btn.Text = autoMuscleEnabled and "Auto Muscle: ON" or "Auto Muscle: OFF"
+    btn.BackgroundColor3 = autoMuscleEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(200, 0, 0)
+end)
+
+createButton("Auto Rebirth", 340, function(btn)
+    autoRebirthEnabled = not autoRebirthEnabled
+    btn.Text = autoRebirthEnabled and "Auto Rebirth: ON" or "Auto Rebirth: OFF"
+    btn.BackgroundColor3 = autoRebirthEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(200, 0, 0)
+end)
+
+createButton("Auto Farm Strength", 400, function(btn)
+    autoFarmStrengthEnabled = not autoFarmStrengthEnabled
+    btn.Text = autoFarmStrengthEnabled and "Auto Farm Strength: ON" or "Auto Farm Strength: OFF"
+    btn.BackgroundColor3 = autoFarmStrengthEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(200, 0, 0)
+end)
+
+-- HELPER: CHECK IF PLAYER IS SEATED ON TARGET MACHINE
+local function isPlayerSeatedOnMachine()
+    local character = player.Character
+    if not character then return false end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+    return humanoid.SeatPart == interactSeat
+end
+
+-- AUTO MUSCLE LOOP
+task.spawn(function()
+    while true do
+        if autoMuscleEnabled and isPlayerSeatedOnMachine() then
+            pcall(function()
+                muscleEvent:FireServer("rep", interactSeat)
+            end)
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- AUTO REBIRTH LOOP
+task.spawn(function()
+    while true do
+        if autoRebirthEnabled then
+            pcall(function()
+                rebirthEvent:FireServer()
+            end)
+        end
+        task.wait(1.5)
+    end
+end)
+
+-- AUTO FARM STRENGTH LOOP (100x per second)
+task.spawn(function()
+    while true do
+        if autoFarmStrengthEnabled and isPlayerSeatedOnMachine() then
+            pcall(function()
+                for i = 1, 100 do
+                    muscleEvent:FireServer("rep", interactSeat)
+                end
+            end)
+        end
+        task.wait(1)
+    end
+end)
